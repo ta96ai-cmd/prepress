@@ -1,26 +1,93 @@
+/* app/globals.css
+   BOS-matched styling + comprehensive dark mode.
+   The .dark overrides below cover every color class used across the app,
+   so dark mode works on all pages without per-component dark: variants. */
+
 @import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ── DARK MODE ─────────────────────────────────────────────── */
+.dark {
+  --background: #0a0f1a;
+  --foreground: #f9fafb;
+}
+.dark body { background-color: #0a0f1a !important; color: #f9fafb !important; }
+
+/* Backgrounds */
+.dark .bg-white        { background-color: #111827 !important; }
+.dark .bg-gray-50      { background-color: #0f1623 !important; }
+.dark .bg-gray-100     { background-color: #1f2937 !important; }
+.dark .bg-gray-950     { background-color: #0a0f1a !important; }
+.dark .bg-blue-50      { background-color: #1e3a5f !important; }
+.dark .bg-green-50     { background-color: #14351f !important; }
+.dark .bg-red-50       { background-color: #3b1218 !important; }
+
+/* Keep strong accent buttons vivid in dark mode (no override needed for
+   bg-blue-600/700, bg-gray-900, bg-green-700/800 — they read fine on dark) */
+
+/* Text */
+.dark .text-gray-900   { color: #f9fafb !important; }
+.dark .text-gray-800   { color: #f3f4f6 !important; }
+.dark .text-gray-700   { color: #e5e7eb !important; }
+.dark .text-gray-600   { color: #cbd2dc !important; }
+.dark .text-gray-500   { color: #9ca3af !important; }
+.dark .text-gray-400   { color: #8b93a1 !important; }
+.dark .text-gray-300   { color: #6b7280 !important; }
+
+/* Borders */
+.dark .border-gray-100 { border-color: #1f2937 !important; }
+.dark .border-gray-200 { border-color: #2d3748 !important; }
+.dark .border-gray-300 { border-color: #374151 !important; }
+
+/* Hovers */
+.dark .hover\:bg-gray-50:hover  { background-color: #1a2333 !important; }
+.dark .hover\:bg-gray-100:hover { background-color: #1f2937 !important; }
+.dark .hover\:bg-black:hover    { background-color: #000 !important; }
+
+/* Form inputs, selects, textareas */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1a2333 !important;
+  border-color: #2d3748 !important;
+  color: #f9fafb !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder { color: #6b7280 !important; }
+
+/* Table header rows */
+.dark thead.bg-gray-50 { background-color: #1a2333 !important; }
+
+/* ── BOS badge system (verbatim) ───────────────────────────── */
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; border: 1px solid; }
+.badge-pending { background: #fef3c7; color: #d97706; border-color: #fcd34d; }
+.badge-progress { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+.badge-done { background: #dcfce7; color: #15803d; border-color: #86efac; }
+.badge-overdue { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+.badge-revision { background: #ffedd5; color: #c2410c; border-color: #fdba74; }
+.badge-approved { background: #dcfce7; color: #15803d; border-color: #86efac; }
+
+/* Prepress status badges (readable in both modes — fixed colors) */
+.badge-status-RECEIVED    { background: #fef3c7; color: #d97706; border-color: #fcd34d; }
+.badge-status-IN_DESIGN   { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+.badge-status-WITH_CLIENT { background: #ffedd5; color: #c2410c; border-color: #fdba74; }
+.badge-status-APPROVED    { background: #dcfce7; color: #15803d; border-color: #86efac; }
+.badge-status-RELEASED    { background: #dcfce7; color: #15803d; border-color: #86efac; }
+.badge-status-ON_HOLD     { background: #f3f4f6; color: #4b5563; border-color: #d1d5db; }
+.badge-status-CANCELLED   { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+
+.badge-complexity { background: #f3f4f6; color: #374151; border-color: #d1d5db; }
+.dark .badge-complexity { background: #1f2937; color: #e5e7eb; border-color: #374151; }
+
+.stuck-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #dc2626; }
