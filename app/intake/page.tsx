@@ -274,17 +274,21 @@ function IntakeInner() {
           <div>
             <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Type</label>
             <div className="flex gap-1">
-              {(["NEW", "EDIT", "REPEAT"] as JobType[]).map((t) => (
+              {([
+                { value: "NEW", label: "New design dev" },
+                { value: "EDIT", label: "Edit" },
+                { value: "SETUP", label: "Setup" },
+              ] as { value: JobType; label: string }[]).map((t) => (
                 <button
-                  key={t}
-                  onClick={() => setJobType(t)}
+                  key={t.value}
+                  onClick={() => setJobType(t.value)}
                   className={`flex-1 text-xs font-semibold rounded-md py-2 border transition-colors ${
-                    jobType === t
+                    jobType === t.value
                       ? "bg-blue-600 text-white border-blue-600"
                       : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                   }`}
                 >
-                  {t}
+                  {t.label}
                 </button>
               ))}
             </div>

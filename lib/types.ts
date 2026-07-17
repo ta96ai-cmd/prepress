@@ -13,7 +13,7 @@ export type TicketStatus =
   | "ON_HOLD"
   | "CANCELLED";
 
-export type JobType = "NEW" | "EDIT" | "REPEAT";
+export type JobType = "NEW" | "EDIT" | "SETUP";
 export type Complexity = "C1" | "C2" | "C3";
 export type FileRole = "INPUT" | "PROOF" | "APPROVED" | "PRODUCTION";
 export type ToolType = "DIE" | "BLOCK" | "SCREEN" | "PLATE_SET";
