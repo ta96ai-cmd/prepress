@@ -23,12 +23,13 @@ export function ReleaseGate({ ticketId, complexity, onReleased }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const { data } = await pp
+    const { data, error } = await pp
       .from("gate_items")
       .select("id,complexity,seq,item_text,active")
       .eq("complexity", complexity)
       .eq("active", true)
       .order("seq");
+    console.log("[ReleaseGate]", { complexity, data, error });
     setItems((data as GateItem[]) ?? []);
     setLoading(false);
   }, [complexity]);

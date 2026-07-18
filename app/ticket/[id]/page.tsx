@@ -77,6 +77,19 @@ function DetailInner() {
   const [savingSpecs, setSavingSpecs] = useState(false);
   const [specsSaved, setSpecsSaved] = useState(false);
   const [editingSpecs, setEditingSpecs] = useState(false);
+  // Have specs ever been entered? If not, treat the form as always-editable
+  // so the user doesn't need to click Edit for the first entry.
+  const specsFilled =
+    !!(ticket && (
+      (ticket as unknown as { paper_size?: string | null }).paper_size ||
+      (ticket as unknown as { n_colors?: number | null }).n_colors != null ||
+      (ticket as unknown as { ups?: number | null }).ups != null ||
+      (ticket as unknown as { tool_plate?: boolean }).tool_plate ||
+      (ticket as unknown as { tool_punch?: boolean }).tool_punch ||
+      (ticket as unknown as { tool_screen?: boolean }).tool_screen ||
+      (ticket as unknown as { tool_block?: boolean }).tool_block
+    ));
+  const specsUnlocked = editingSpecs || !specsFilled;
 
   // Seed the spec form from a freshly-loaded ticket row.
   function initSpecs(t: Record<string, unknown>) {
@@ -170,6 +183,7 @@ function DetailInner() {
   // Prefer stripping an existing reserved name (exact DB slug + version) when
   // one exists; otherwise build it from the ticket. Version defaults to v1 and
   // the designer updates it by hand (see the reminder note below).
+
   function jobSlug(name: string): string {
     return name
       .split(/\s+/)
@@ -272,7 +286,7 @@ function DetailInner() {
       <section className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Job specs</h2>
-          {canEditSpecs && !editingSpecs && (
+          {canEditSpecs && !editingSpecs && specsFilled && (
             <button onClick={() => setEditingSpecs(true)}
               className="border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold rounded-md px-3 py-1 transition-colors">
               Edit
@@ -284,24 +298,27 @@ function DetailInner() {
           <label className="text-sm">
             <span className="block text-gray-600 mb-1">Paper size</span>
             <input value={paperSize} onChange={(e) => setPaperSize(e.target.value)}
-              disabled={!canEditSpecs || !editingSpecs} placeholder="12x18" className={inputCls} />
+              
+              placeholder="12x18" className={inputCls} />
           </label>
           <label className="text-sm">
             <span className="block text-gray-600 mb-1">No. of colors</span>
             <input type="number" min={0} value={nColors} onChange={(e) => setNColors(e.target.value)}
-              disabled={!canEditSpecs || !editingSpecs} placeholder="4" className={inputCls} />
+              
+              placeholder="4" className={inputCls} />
           </label>
           <label className="text-sm">
             <span className="block text-gray-600 mb-1">UPS</span>
             <input type="number" min={0} value={ups} onChange={(e) => setUps(e.target.value)}
-              disabled={!canEditSpecs || !editingSpecs} placeholder="12" className={inputCls} />
+              
+              placeholder="12" className={inputCls} />
           </label>
         </div>
 
         {/* Special colors */}
         <div className="mb-4">
           <label className="flex items-center gap-2 text-sm text-gray-700">
-            <input type="checkbox" checked={splEnabled} disabled={!canEditSpecs || !editingSpecs}
+            <input type="checkbox" checked={splEnabled} disabled={!canEditSpecs || !specsUnlocked}
               onChange={(e) => { setSplEnabled(e.target.checked); if (e.target.checked && splColors.length === 0) setSplColors([""]); }} />
             Special color(s)
           </label>
@@ -309,12 +326,12 @@ function DetailInner() {
             <div className="mt-2 space-y-2">
               {splColors.map((c, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <input value={c} disabled={!canEditSpecs || !editingSpecs}
+                  <input value={c} disabled={!canEditSpecs || !specsUnlocked}
                     onChange={(e) => setSplColors(splColors.map((v, j) => (j === i ? e.target.value : v)))}
                     placeholder="color code (e.g. Pantone 485)"
                     className={`${inputCls} max-w-xs`} />
                   {splColors.length > 1 && (
-                    <button type="button" disabled={!canEditSpecs || !editingSpecs}
+                    <button type="button" disabled={!canEditSpecs || !specsUnlocked}
                       onClick={() => setSplColors(splColors.filter((_, j) => j !== i))}
                       className="text-red-600 text-xs font-semibold px-2 py-1 hover:bg-red-50 rounded-md">
                       Remove
@@ -322,7 +339,7 @@ function DetailInner() {
                   )}
                 </div>
               ))}
-              <button type="button" disabled={!canEditSpecs || !editingSpecs}
+              <button type="button" disabled={!canEditSpecs || !specsUnlocked}
                 onClick={() => setSplColors([...splColors, ""])}
                 className="text-xs font-semibold text-gray-700 border border-gray-200 hover:bg-gray-50 rounded-md px-2 py-1">
                 + add another
@@ -336,47 +353,53 @@ function DetailInner() {
           <span className="block text-gray-600 text-sm mb-2">Tools</span>
           <div className="flex flex-wrap gap-4">
             <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={toolPlate} disabled={!canEditSpecs || !editingSpecs} onChange={(e) => setToolPlate(e.target.checked)} /> Plate
+              <input type="checkbox" checked={toolPlate} 
+              onChange={(e) => setToolPlate(e.target.checked)} /> Plate
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={toolPunch} disabled={!canEditSpecs || !editingSpecs} onChange={(e) => setToolPunch(e.target.checked)} /> Punch
+              <input type="checkbox" checked={toolPunch} 
+              onChange={(e) => setToolPunch(e.target.checked)} /> Punch
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={toolScreen} disabled={!canEditSpecs || !editingSpecs} onChange={(e) => setToolScreen(e.target.checked)} /> Screen
+              <input type="checkbox" checked={toolScreen} 
+              onChange={(e) => setToolScreen(e.target.checked)} /> Screen
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={toolBlock} disabled={!canEditSpecs || !editingSpecs} onChange={(e) => setToolBlock(e.target.checked)} /> Block
+              <input type="checkbox" checked={toolBlock} 
+              onChange={(e) => setToolBlock(e.target.checked)} /> Block
             </label>
           </div>
 
           {toolScreen && (
             <div className="mt-3 text-sm max-w-xs">
               <span className="block text-gray-600 mb-1">Screen text (for filename)</span>
-              <input value={screenText} disabled={!canEditSpecs || !editingSpecs}
+              <input value={screenText} disabled={!canEditSpecs || !specsUnlocked}
                 onChange={(e) => setScreenText(e.target.value)} className={inputCls} />
             </div>
           )}
           {toolBlock && (
             <div className="mt-3 text-sm max-w-xs">
               <span className="block text-gray-600 mb-1">Block text (for filename)</span>
-              <input value={blockText} disabled={!canEditSpecs || !editingSpecs}
+              <input value={blockText} disabled={!canEditSpecs || !specsUnlocked}
                 onChange={(e) => setBlockText(e.target.value)} className={inputCls} />
             </div>
           )}
         </div>
 
-        {canEditSpecs && editingSpecs && (
+        {canEditSpecs && specsUnlocked && (
           <div className="flex items-center gap-3">
             <button onClick={saveSpecs} disabled={savingSpecs}
               className="bg-gray-900 hover:bg-black disabled:opacity-40 text-white text-sm font-semibold rounded-md px-4 py-2 transition-colors">
               {savingSpecs ? "Saving..." : "Save specs"}
             </button>
-            <button
-              type="button"
-              onClick={() => { if (ticket) initSpecs(ticket as unknown as Record<string, unknown>); setEditingSpecs(false); }}
-              className="border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-md px-4 py-2 transition-colors">
-              Cancel
-            </button>
+            {specsFilled && (
+              <button
+                type="button"
+                onClick={() => { if (ticket) initSpecs(ticket as unknown as Record<string, unknown>); setEditingSpecs(false); }}
+                className="border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-md px-4 py-2 transition-colors">
+                Cancel
+              </button>
+            )}
           </div>
         )}
         {specsSaved && !editingSpecs && (
@@ -432,7 +455,6 @@ function DetailInner() {
           </div>
         )}
       </section>
-
       <section className="bg-white border border-gray-200 rounded-lg p-4">
         <h2 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">History</h2>
         {history.length === 0 ? (
