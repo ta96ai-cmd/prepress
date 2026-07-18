@@ -131,6 +131,15 @@ function DetailInner() {
     await load();
   }
 
+  async function deleteTicket() {
+    if (!confirm("Delete this ticket permanently? This cannot be undone.")) return;
+    setBusy(true); setError(null);
+    const { error } = await pp.rpc("delete_ticket", { p_ticket_id: id });
+    setBusy(false);
+    if (error) { setError(error.message); return; }
+    window.location.href = "/board";
+  }
+
   async function saveSpecs() {
     setSavingSpecs(true); setError(null); setSpecsSaved(false);
     const cleanedSpl = splEnabled
@@ -257,20 +266,28 @@ function DetailInner() {
         <h2 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">Move ticket</h2>
         <div className="flex items-center gap-3 flex-wrap">
           <select
-            disabled={busy || ticket.status === "RELEASED" || ticket.status === "CANCELLED"}
+            disabled={busy || ticket.status === "RELEASED"}
             value=""
             onChange={(e) => { const v = e.target.value; if (v) move(v as TicketStatus); }}
             className="border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 bg-white disabled:opacity-40 min-w-[220px]"
           >
             <option value="">Move to…</option>
+            {ticket.status === "ON_HOLD" && (ticket as unknown as { held_from_status?: string }).held_from_status && (
+              <option value={(ticket as unknown as { held_from_status: string }).held_from_status}>
+                Resume ({STATUS_LABEL[(ticket as unknown as { held_from_status: string }).held_from_status as TicketStatus]})
+              </option>
+            )}
+            {ticket.status === "CANCELLED" && (
+              <option value="RECEIVED">Restart (from beginning)</option>
+            )}
             {moves.map((m) => (
               <option key={m.to} value={m.to}>{m.label}</option>
             ))}
+            {ticket.status !== "RELEASED" && ticket.status !== "CANCELLED" && ticket.status !== "ON_HOLD" && (
+              <option value="ON_HOLD">Hold</option>
+            )}
             {ticket.status !== "RELEASED" && ticket.status !== "CANCELLED" && (
-              <>
-                <option value="ON_HOLD">Hold</option>
-                <option value="CANCELLED">Cancel</option>
-              </>
+              <option value="CANCELLED">Cancel</option>
             )}
           </select>
           {ticket.status === "APPROVED" && (
@@ -279,6 +296,12 @@ function DetailInner() {
             </span>
           )}
           {ticket.status === "RELEASED" && <span className="text-sm text-green-700 font-medium">Released.</span>}
+          {ticket.status === "CANCELLED" && canRelease && (
+            <button onClick={deleteTicket} disabled={busy}
+              className="border border-red-200 hover:bg-red-50 text-red-600 text-sm font-semibold rounded-md px-4 py-2 transition-colors">
+              Delete permanently
+            </button>
+          )}
         </div>
       </section>
 
@@ -298,19 +321,19 @@ function DetailInner() {
           <label className="text-sm">
             <span className="block text-gray-600 mb-1">Paper size</span>
             <input value={paperSize} onChange={(e) => setPaperSize(e.target.value)}
-              
+              disabled={!canEditSpecs || !specsUnlocked}
               placeholder="12x18" className={inputCls} />
           </label>
           <label className="text-sm">
             <span className="block text-gray-600 mb-1">No. of colors</span>
             <input type="number" min={0} value={nColors} onChange={(e) => setNColors(e.target.value)}
-              
+              disabled={!canEditSpecs || !specsUnlocked}
               placeholder="4" className={inputCls} />
           </label>
           <label className="text-sm">
             <span className="block text-gray-600 mb-1">UPS</span>
             <input type="number" min={0} value={ups} onChange={(e) => setUps(e.target.value)}
-              
+              disabled={!canEditSpecs || !specsUnlocked}
               placeholder="12" className={inputCls} />
           </label>
         </div>
@@ -353,19 +376,19 @@ function DetailInner() {
           <span className="block text-gray-600 text-sm mb-2">Tools</span>
           <div className="flex flex-wrap gap-4">
             <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={toolPlate} 
+              <input type="checkbox" checked={toolPlate} disabled={!canEditSpecs || !specsUnlocked}
               onChange={(e) => setToolPlate(e.target.checked)} /> Plate
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={toolPunch} 
+              <input type="checkbox" checked={toolPunch} disabled={!canEditSpecs || !specsUnlocked}
               onChange={(e) => setToolPunch(e.target.checked)} /> Punch
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={toolScreen} 
+              <input type="checkbox" checked={toolScreen} disabled={!canEditSpecs || !specsUnlocked}
               onChange={(e) => setToolScreen(e.target.checked)} /> Screen
             </label>
             <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" checked={toolBlock} 
+              <input type="checkbox" checked={toolBlock} disabled={!canEditSpecs || !specsUnlocked}
               onChange={(e) => setToolBlock(e.target.checked)} /> Block
             </label>
           </div>
