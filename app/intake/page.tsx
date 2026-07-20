@@ -12,23 +12,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase, pp } from "@/lib/supabase";
 import {
   Client,
-  ProcessMaster,
   TeamMember,
   JobType,
-  Complexity,
-  COMPLEXITY_LABEL,
   nameFromEmail,
 } from "@/lib/types";
 
-// Processes that push complexity upward, used only to SUGGEST (human confirms).
-const C3_PROCESSES = ["EMBOSS_DEBOSS", "DRIPOFF_SPOTUV", "RIGID_ASSEMBLY", "FOIL_STAMP"];
-const C2_PROCESSES = ["DIE_PUNCH", "SCREEN", "LAMINATION", "DIGITAL_EMBELLISH", "CORRUGATION"];
+// Complexity + processes removed from intake. Every ticket defaults to C3 so the
+// universal release checklist (formerly the C3 list) always applies.
 
 function IntakeInner() {
   const { canCreateTicket, loading: authLoading } = useAuth();
 
   const [clients, setClients] = useState<Client[]>([]);
-  const [processes, setProcesses] = useState<ProcessMaster[]>([]);
   const [designers, setDesigners] = useState<TeamMember[]>([]);
 
   // form state
@@ -36,9 +31,7 @@ function IntakeInner() {
   const [clientSearch, setClientSearch] = useState("");
   const [jobName, setJobName] = useState("");
   const [jobType, setJobType] = useState<JobType>("NEW");
-  const [complexity, setComplexity] = useState<Complexity>("C1");
-  const [complexityTouched, setComplexityTouched] = useState(false);
-  const [selectedProcesses, setSelectedProcesses] = useState<string[]>([]);
+  const complexity = "C3"; // fixed: complexity removed from workflow
   const [assignedDesigner, setAssignedDesigner] = useState("");
   const [brief, setBrief] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -52,24 +45,16 @@ function IntakeInner() {
   // Load dropdown data once.
   useEffect(() => {
     (async () => {
-      const [{ data: cl }, { data: pm }, { data: team }] = await Promise.all([
+      const [{ data: cl }, { data: team }] = await Promise.all([
         supabase.from("clients").select("id,name,client_id,active").eq("active", true).order("name"),
-        pp.from("process_master").select("id,code,name,active").eq("active", true).order("name"),
         pp.from("v_team").select("user_id,email,role"),
       ]);
       setClients((cl as Client[]) ?? []);
-      setProcesses((pm as ProcessMaster[]) ?? []);
       setDesigners(((team as TeamMember[]) ?? []).filter((t) => t.role === "artist"));
     })();
   }, []);
 
-  // Auto-suggest complexity from processes, unless the user has overridden it.
-  useEffect(() => {
-    if (complexityTouched) return;
-    const hasC3 = selectedProcesses.some((p) => C3_PROCESSES.includes(p));
-    const hasC2 = selectedProcesses.some((p) => C2_PROCESSES.includes(p));
-    setComplexity(hasC3 ? "C3" : hasC2 ? "C2" : "C1");
-  }, [selectedProcesses, complexityTouched]);
+  
 
   const filteredClients = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
@@ -79,11 +64,7 @@ function IntakeInner() {
       .slice(0, 50);
   }, [clients, clientSearch]);
 
-  function toggleProcess(code: string) {
-    setSelectedProcesses((prev) =>
-      prev.includes(code) ? prev.filter((p) => p !== code) : [...prev, code]
-    );
-  }
+  
 
   const canSubmit = clientId && jobName.trim() && assignedDesigner && !saving;
 
@@ -116,14 +97,6 @@ function IntakeInner() {
       return;
     }
 
-    // 2. Attach processes (best-effort; ticket already exists).
-    if (selectedProcesses.length > 0) {
-      const rows = processes
-        .filter((p) => selectedProcesses.includes(p.code))
-        .map((p) => ({ ticket_id: ticket.id, process_id: p.id }));
-      await pp.from("ticket_processes").insert(rows);
-    }
-
     setSaving(false);
     setCreated({ ticket_no: ticket.ticket_no as string, due: ticket.due_date as string });
   }
@@ -133,9 +106,6 @@ function IntakeInner() {
     setClientSearch("");
     setJobName("");
     setJobType("NEW");
-    setComplexity("C1");
-    setComplexityTouched(false);
-    setSelectedProcesses([]);
     setAssignedDesigner("");
     setBrief("");
     setDueDate("");
@@ -269,78 +239,27 @@ function IntakeInner() {
           />
         </div>
 
-        {/* Type + Complexity */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Type</label>
-            <div className="flex gap-1">
-              {([
-                { value: "NEW", label: "New design dev" },
-                { value: "EDIT", label: "Edit" },
-                { value: "SETUP", label: "Setup" },
-              ] as { value: JobType; label: string }[]).map((t) => (
-                <button
-                  key={t.value}
-                  onClick={() => setJobType(t.value)}
-                  className={`flex-1 text-xs font-semibold rounded-md py-2 border transition-colors ${
-                    jobType === t.value
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
-              Complexity <span className="text-gray-400 normal-case">(auto)</span>
-            </label>
-            <div className="flex gap-1">
-              {(["C1", "C2", "C3"] as Complexity[]).map((c) => (
-                <button
-                  key={c}
-                  onClick={() => {
-                    setComplexity(c);
-                    setComplexityTouched(true);
-                  }}
-                  title={COMPLEXITY_LABEL[c]}
-                  className={`flex-1 text-xs font-semibold rounded-md py-2 border transition-colors ${
-                    complexity === c
-                      ? "bg-gray-900 text-white border-gray-900"
-                      : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Processes */}
+        {/* Type */}
         <div>
-          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
-            Processes <span className="text-gray-400 normal-case">(tap all that apply)</span>
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {processes.map((p) => {
-              const on = selectedProcesses.includes(p.code);
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => toggleProcess(p.code)}
-                  className={`text-xs font-medium rounded-full px-3 py-1.5 border transition-colors ${
-                    on
-                      ? "bg-blue-50 text-blue-700 border-blue-300"
-                      : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  {p.name}
-                </button>
-              );
-            })}
+          <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Type</label>
+          <div className="flex gap-1">
+            {([
+              { value: "NEW", label: "New design dev" },
+              { value: "EDIT", label: "Edit" },
+              { value: "SETUP", label: "Setup" },
+            ] as { value: JobType; label: string }[]).map((t) => (
+              <button
+                key={t.value}
+                onClick={() => setJobType(t.value)}
+                className={`flex-1 text-xs font-semibold rounded-md py-2 border transition-colors ${
+                  jobType === t.value
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
         </div>
 

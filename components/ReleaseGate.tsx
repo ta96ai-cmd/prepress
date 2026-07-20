@@ -23,13 +23,12 @@ export function ReleaseGate({ ticketId, complexity, onReleased }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const { data, error } = await pp
+    const { data } = await pp
       .from("gate_items")
       .select("id,complexity,seq,item_text,active")
       .eq("complexity", complexity)
       .eq("active", true)
       .order("seq");
-    console.log("[ReleaseGate]", { complexity, data, error });
     setItems((data as GateItem[]) ?? []);
     setLoading(false);
   }, [complexity]);
@@ -37,6 +36,16 @@ export function ReleaseGate({ ticketId, complexity, onReleased }: Props) {
   useEffect(() => { load(); }, [load]);
 
   const allChecked = items.length > 0 && items.every((i) => checked[i.id]);
+
+  function toggleAll() {
+    if (allChecked) {
+      setChecked({});
+    } else {
+      const next: Record<string, boolean> = {};
+      items.forEach((i) => { next[i.id] = true; });
+      setChecked(next);
+    }
+  }
 
   async function release() {
     setError(null);
@@ -60,6 +69,15 @@ export function ReleaseGate({ ticketId, complexity, onReleased }: Props) {
       <p className="text-xs text-gray-500 mb-3">
         Confirm each item, then release. Releasing stamps the tools used and logs them out.
       </p>
+      <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 cursor-pointer py-1 mb-1 border-b border-gray-100 pb-2">
+        <input
+          type="checkbox"
+          checked={allChecked}
+          onChange={toggleAll}
+          className="w-4 h-4 mt-0.5 shrink-0"
+        />
+        <span>Select all</span>
+      </label>
       <div className="space-y-1.5 mb-4">
         {items.map((i) => (
           <label key={i.id} className="flex items-start gap-2 text-sm text-gray-800 cursor-pointer py-1">

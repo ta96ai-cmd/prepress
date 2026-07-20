@@ -252,7 +252,6 @@ function DetailInner() {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-gray-900">{ticket.ticket_no}</h1>
             <span className={`badge badge-status-${ticket.status}`}>{STATUS_LABEL[ticket.status]}</span>
-            <span className="badge badge-complexity">{ticket.complexity}</span>
             {ticket.is_confidential && <span className="text-[10px] text-red-600 font-semibold">CONFIDENTIAL</span>}
           </div>
           <div className="text-gray-900 font-medium mt-1">{ticket.job_name}</div>
@@ -264,45 +263,60 @@ function DetailInner() {
 
       <section className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
         <h2 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">Move ticket</h2>
-        <div className="flex items-center gap-3 flex-wrap">
-          <select
-            disabled={busy || ticket.status === "RELEASED"}
-            value=""
-            onChange={(e) => { const v = e.target.value; if (v) move(v as TicketStatus); }}
-            className="border border-gray-200 rounded-md px-3 py-2 text-sm text-gray-900 bg-white disabled:opacity-40 min-w-[220px]"
-          >
-            <option value="">Move to…</option>
-            {ticket.status === "ON_HOLD" && (ticket as unknown as { held_from_status?: string }).held_from_status && (
-              <option value={(ticket as unknown as { held_from_status: string }).held_from_status}>
-                Resume ({STATUS_LABEL[(ticket as unknown as { held_from_status: string }).held_from_status as TicketStatus]})
-              </option>
-            )}
-            {ticket.status === "CANCELLED" && (
-              <option value="RECEIVED">Restart (from beginning)</option>
-            )}
-            {moves.map((m) => (
-              <option key={m.to} value={m.to}>{m.label}</option>
-            ))}
-            {ticket.status !== "RELEASED" && ticket.status !== "CANCELLED" && ticket.status !== "ON_HOLD" && (
-              <option value="ON_HOLD">Hold</option>
-            )}
-            {ticket.status !== "RELEASED" && ticket.status !== "CANCELLED" && (
-              <option value="CANCELLED">Cancel</option>
-            )}
-          </select>
-          {ticket.status === "APPROVED" && (
-            <span className="text-sm text-gray-500">
-              {canRelease ? "Ready to release — use the Release gate." : "Waiting for a manager to release."}
-            </span>
-          )}
-          {ticket.status === "RELEASED" && <span className="text-sm text-green-700 font-medium">Released.</span>}
-          {ticket.status === "CANCELLED" && canRelease && (
-            <button onClick={deleteTicket} disabled={busy}
-              className="border border-red-200 hover:bg-red-50 text-red-600 text-sm font-semibold rounded-md px-4 py-2 transition-colors">
-              Delete permanently
-            </button>
-          )}
+        <div className="flex flex-wrap items-center gap-2">
+          {(["RECEIVED","IN_DESIGN","WITH_CLIENT","APPROVED","RELEASED","ON_HOLD","CANCELLED"] as TicketStatus[]).map((s, idx) => {
+            const isCurrent = ticket.status === s;
+            const heldFrom = (ticket as unknown as { held_from_status?: TicketStatus }).held_from_status;
+            const selectable =
+              !isCurrent && (
+                moves.some((m) => m.to === s) ||
+                (ticket.status === "ON_HOLD" && s === heldFrom) ||
+                (ticket.status === "CANCELLED" && s === "RECEIVED") ||
+                (s === "ON_HOLD" && ticket.status !== "RELEASED" && ticket.status !== "CANCELLED" && ticket.status !== "ON_HOLD") ||
+                (s === "CANCELLED" && ticket.status !== "RELEASED" && ticket.status !== "CANCELLED")
+              );
+            const disabled = busy || isCurrent || !selectable || s === "RELEASED";
+            const isFlowStep = idx < 5; // Received…Released are the flow; Hold/Cancel are actions
+            return (
+              <div key={s} className="flex items-center gap-2">
+                {isFlowStep && idx > 0 && <span className="text-gray-300 select-none">→</span>}
+                {s === "ON_HOLD" && <span className="w-px h-6 bg-gray-200 mx-1" />}
+                <label
+                  className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs whitespace-nowrap transition-colors ${
+                    isCurrent
+                      ? "border-gray-900 bg-gray-900 text-white font-semibold"
+                      : disabled
+                        ? "border-gray-100 text-gray-300 cursor-not-allowed"
+                        : "border-gray-200 text-gray-700 hover:bg-gray-50 cursor-pointer"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="move-stage"
+                    checked={isCurrent}
+                    disabled={disabled}
+                    onChange={() => { if (!disabled) move(s); }}
+                    className="w-3.5 h-3.5"
+                  />
+                  <span>{STATUS_LABEL[s]}</span>
+                </label>
+              </div>
+            );
+          })}
         </div>
+
+        {ticket.status === "APPROVED" && (
+          <p className="text-sm text-gray-500 mt-3">
+            {canRelease ? "Ready to release — use the Release gate below." : "Waiting for a manager to release."}
+          </p>
+        )}
+        {ticket.status === "RELEASED" && <p className="text-sm text-green-700 font-medium mt-3">Released.</p>}
+        {ticket.status === "CANCELLED" && canRelease && (
+          <button onClick={deleteTicket} disabled={busy}
+            className="mt-3 border border-red-200 hover:bg-red-50 text-red-600 text-sm font-semibold rounded-md px-4 py-2 transition-colors">
+            Delete permanently
+          </button>
+        )}
       </section>
 
       {/* --- JOB SPECS --- */}
